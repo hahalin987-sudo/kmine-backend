@@ -1,0 +1,8 @@
+node_modules/
+.env
+debug.js
+full-test.js
+test-api.js
+test-login.js
+update-password.js
+ngrok-config.txt

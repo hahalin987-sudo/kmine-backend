@@ -10,7 +10,7 @@ var memoryStore = null;
 function getKV() {
   if (kvClient) return kvClient;
   
-  var kvUrl = process.env.KV_REST_API_URL || '';
+  var kvUrl = process.env.KV_REST_API_URL || process.env.KV_REST_URL || '';
   if (!kvUrl) {
     if (!memoryStore) memoryStore = new MemoryStore();
     return memoryStore;
@@ -20,7 +20,7 @@ function getKV() {
     var createClient = require('@vercel/kv').createClient;
     kvClient = createClient({
       url: kvUrl,
-      token: process.env.KV_REST_API_TOKEN || '',
+      token: process.env.KV_REST_API_TOKEN || process.env.KV_REST_TOKEN || '',
     });
     return kvClient;
   } catch (e) {

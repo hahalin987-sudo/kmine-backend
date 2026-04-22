@@ -35,11 +35,9 @@ app.get('/api/health', function(req, res) {
 
 module.exports = app;
 
-var isVercel = !!process.env.VERCEL;
-
-async function start() {
-  try {
-    if (!isVercel) {
+if (!process.env.VERCEL) {
+  (async function() {
+    try {
       console.log('Seeding data...');
       await seedAll();
       console.log('\nKMine API running at http://localhost:' + PORT);
@@ -48,13 +46,9 @@ async function start() {
       console.log('  admin / admin123 (Admin)');
       console.log('  ft / admin123 (Operator)');
       app.listen(PORT);
-    } else {
-      console.log('Vercel serverless mode started');
+    } catch (err) {
+      console.error('Startup failed:', err.message);
+      process.exit(1);
     }
-  } catch (err) {
-    console.error('Startup failed:', err.message);
-    if (!isVercel) process.exit(1);
-  }
+  })();
 }
-
-start();

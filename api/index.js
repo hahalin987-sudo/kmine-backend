@@ -1,8 +1,10 @@
-// Minimal Vercel serverless function - 直接导出，不使用 serverless-http
+// Vercel Node.js serverless function
+// Using @vercel/node builder - handler receives (req, res)
+
 module.exports = (req, res) => {
-  const { method, url } = req;
+  const { method, url, headers, body } = req;
   
-  console.log(`${method} ${url}`);
+  console.log(`[VERCEL] ${method} ${url}`);
   
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -16,41 +18,48 @@ module.exports = (req, res) => {
   
   const pathname = url.split('?')[0];
   
-  if (pathname === '/' || pathname === '') {
-    res.status(200).json({ message: 'K矿管理 API', version: '1.0' });
-    return;
-  }
-  
   if (pathname === '/api' || pathname === '/api/') {
-    res.status(200).json({ status: 'ok', time: new Date().toISOString() });
-    return;
-  }
-  
-  if (pathname === '/api/health') {
-    res.status(200).json({ status: 'ok', time: new Date().toISOString() });
-    return;
-  }
-  
-  if (pathname === '/api/auth/login' && method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
-      try {
-        const { username, password } = JSON.parse(body);
-        if (username === 'admin' && password === 'admin123') {
-          res.status(200).json({ token: 'admin-token-xxx', user: { id: 1, username: 'admin', role: 'admin' } });
-        } else if (username === 'ft' && password === 'admin123') {
-          res.status(200).json({ token: 'ft-token-xxx', user: { id: 2, username: 'ft', role: 'operator' } });
-        } else {
-          res.status(401).json({ error: 'Invalid credentials' });
-        }
-      } catch {
-        res.status(400).json({ error: 'Invalid JSON' });
-      }
+    res.status(200).json({ 
+      status: 'ok', 
+      time: new Date().toISOString(),
+      storage: process.env.KV_REST_API_URL ? 'vercel-kv' : 'memory'
     });
     return;
   }
   
-  // 通用 404
+  if (pathname === '/api/health') {
+    res.status(200).json({ 
+      status: 'ok', 
+      time: new Date().toISOString(),
+      storage: process.env.KV_REST_API_URL ? 'vercel-kv' : 'memory'
+    });
+    return;
+  }
+  
+  if (pathname === '/api/auth/login' && method === 'POST') {
+    try {
+      const data = typeof body === 'string' ? JSON.parse(body) : body;
+      const { username, password } = data || {};
+      
+      if (username === 'admin' && password === 'admin123') {
+        res.status(200).json({ 
+          token: 'admin-token-' + Date.now(), 
+          user: { id: 1, username: 'admin', role: 'admin', name: '管理员' } 
+        });
+      } else if (username === 'ft' && password === 'admin123') {
+        res.status(200).json({ 
+          token: 'ft-token-' + Date.now(), 
+          user: { id: 2, username: 'ft', role: 'operator', name: '操作员' } 
+        });
+      } else {
+        res.status(401).json({ error: 'Invalid credentials' });
+      }
+    } catch (e) {
+      res.status(400).json({ error: 'Invalid request body' });
+    }
+    return;
+  }
+  
+  // Not found
   res.status(404).json({ error: 'Not found', path: pathname });
 };

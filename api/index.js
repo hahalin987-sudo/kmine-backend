@@ -1,52 +1,56 @@
-const serverless = require('serverless-http');
-const express = require('express');
-
-const app = express();
-
-// CORS
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') return res.sendStatus(200);
-  next();
-});
-
-app.use(express.json());
-
-// Root endpoint
-app.get('/', (req, res) => {
-  res.json({ message: 'K矿管理 API', version: '1.0', path: '/' });
-});
-
-// Health endpoint
-app.get('/api', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString(), storage: process.env.KV_REST_API_URL ? 'vercel-kv' : 'memory' });
-});
-
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString(), storage: process.env.KV_REST_API_URL ? 'vercel-kv' : 'memory' });
-});
-
-// Login endpoint
-app.post('/api/auth/login', (req, res) => {
-  const { username, password } = req.body;
-  if (username === 'admin' && password === 'admin123') {
-    res.json({ token: 'mock-token-admin', user: { id: 1, username: 'admin', role: 'admin', name: '管理员' } });
-  } else if (username === 'ft' && password === 'admin123') {
-    res.json({ token: 'mock-token-ft', user: { id: 2, username: 'ft', role: 'operator', name: '操作员' } });
-  } else {
-    res.status(401).json({ error: '用户名或密码错误' });
+// Minimal Vercel serverless function - 直接导出，不使用 serverless-http
+module.exports = (req, res) => {
+  const { method, url } = req;
+  
+  console.log(`${method} ${url}`);
+  
+  // CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  if (method === 'OPTIONS') {
+    res.status(200).end();
+    return;
   }
-});
-
-// Employees endpoint
-app.get('/api/employees', (req, res) => {
-  res.json([
-    { id: 1, name: '张三', department: '采矿部', position: '矿工', phone: '13800138001', status: 'active' },
-    { id: 2, name: '李四', department: '运输部', position: '司机', phone: '13800138002', status: 'active' },
-    { id: 3, name: '王五', department: '安全部', position: '安全员', phone: '13800138003', status: 'active' }
-  ]);
-});
-
-module.exports = app;
+  
+  const pathname = url.split('?')[0];
+  
+  if (pathname === '/' || pathname === '') {
+    res.status(200).json({ message: 'K矿管理 API', version: '1.0' });
+    return;
+  }
+  
+  if (pathname === '/api' || pathname === '/api/') {
+    res.status(200).json({ status: 'ok', time: new Date().toISOString() });
+    return;
+  }
+  
+  if (pathname === '/api/health') {
+    res.status(200).json({ status: 'ok', time: new Date().toISOString() });
+    return;
+  }
+  
+  if (pathname === '/api/auth/login' && method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const { username, password } = JSON.parse(body);
+        if (username === 'admin' && password === 'admin123') {
+          res.status(200).json({ token: 'admin-token-xxx', user: { id: 1, username: 'admin', role: 'admin' } });
+        } else if (username === 'ft' && password === 'admin123') {
+          res.status(200).json({ token: 'ft-token-xxx', user: { id: 2, username: 'ft', role: 'operator' } });
+        } else {
+          res.status(401).json({ error: 'Invalid credentials' });
+        }
+      } catch {
+        res.status(400).json({ error: 'Invalid JSON' });
+      }
+    });
+    return;
+  }
+  
+  // 通用 404
+  res.status(404).json({ error: 'Not found', path: pathname });
+};

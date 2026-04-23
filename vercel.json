@@ -1,1 +1,10 @@
-{"framework":"vercel"}
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" }
+  ],
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "**"
+    }
+  }
+}
